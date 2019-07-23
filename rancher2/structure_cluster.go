@@ -194,7 +194,7 @@ func expandClusterAuthEndpoint(p []interface{}) *managementClient.LocalClusterAu
 	return obj
 }
 
-func expandCluster(in *schema.ResourceData) (*Cluster, error) {
+func expandCluster(in *schema.ResourceData, config *Config) (*Cluster, error) {
 	obj := &Cluster{}
 	if in == nil {
 		return nil, fmt.Errorf("[ERROR] expanding cluster: Input ResourceData is nil")
@@ -229,7 +229,7 @@ func expandCluster(in *schema.ResourceData) (*Cluster, error) {
 	}
 
 	if v, ok := in.Get("eks_config").([]interface{}); ok && len(v) > 0 {
-		eksConfig, err := expandClusterEKSConfig(v, obj.Name)
+		eksConfig, err := expandClusterEKSConfig(v, obj.Name, config)
 		if err != nil {
 			return nil, err
 		}

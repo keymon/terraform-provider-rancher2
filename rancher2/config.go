@@ -18,18 +18,30 @@ type Client struct {
 	Project    *projectClient.Client
 }
 
+// AwsCredentials provides a way to store or get new aws credentials
+type AwsCredentials struct {
+	AccessKey    string
+	SecretKey    string
+	SessionToken string
+}
+
+func (a *AwsCredentials) GetCredentials() (string, string, string) {
+	return a.AccessKey, a.SecretKey, a.SessionToken
+}
+
 // Config is the configuration parameters for a Rancher v3 API
 type Config struct {
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	TokenKey  string `json:"tokenKey"`
-	URL       string `json:"url"`
-	CACerts   string `json:"cacert"`
-	Insecure  bool   `json:"insecure"`
-	Bootstrap bool   `json:"bootstrap"`
-	ClusterID string `json:"clusterId"`
-	ProjectID string `json:"projectId"`
-	Client    Client
+	AccessKey      string `json:"accessKey"`
+	SecretKey      string `json:"secretKey"`
+	TokenKey       string `json:"tokenKey"`
+	URL            string `json:"url"`
+	CACerts        string `json:"cacert"`
+	Insecure       bool   `json:"insecure"`
+	Bootstrap      bool   `json:"bootstrap"`
+	ClusterID      string `json:"clusterId"`
+	ProjectID      string `json:"projectId"`
+	Client         Client
+	AwsCredentials AwsCredentials
 }
 
 // UpdateToken update tokenkey and restart client connections

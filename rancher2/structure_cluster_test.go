@@ -23,6 +23,8 @@ var (
 	testClusterInterfaceGKE               map[string]interface{}
 	testClusterConfRKE                    *Cluster
 	testClusterInterfaceRKE               map[string]interface{}
+	testProviderAwsCredsClusterConfEKS    *Cluster
+	testNoAwsCredsClusterInterfaceEKS     map[string]interface{}
 )
 
 func init() {
@@ -181,6 +183,12 @@ func init() {
 		"rke_config":                              testClusterRKEConfigInterface,
 		"system_project_id":                       "system_project_id",
 	}
+
+	testProviderAwsCredsClusterConfEKS = &Cluster{}
+	*testProviderAwsCredsClusterConfEKS = *testClusterConfEKS
+	testProviderAwsCredsClusterConfEKS.AmazonElasticContainerServiceConfig = testProviderAwsCredsClusterEKSConfigConf
+	testNoAwsCredsClusterInterfaceEKS = copyMap(testClusterInterfaceEKS)
+	testNoAwsCredsClusterInterfaceEKS["eks_config"] = testNoAwsCredsClusterEKSConfigInterface
 }
 
 func TestFlattenClusterRegistationToken(t *testing.T) {
@@ -291,32 +299,51 @@ func TestExpandClusterRegistationToken(t *testing.T) {
 }
 
 func TestExpandCluster(t *testing.T) {
-
 	cases := []struct {
+		Config         *Config
 		Input          map[string]interface{}
 		ExpectedOutput *Cluster
 	}{
 		{
+			&Config{},
 			testClusterInterfaceAKS,
 			testClusterConfAKS,
 		},
 		{
+			&Config{},
 			testClusterInterfaceEKS,
 			testClusterConfEKS,
 		},
 		{
+			&Config{},
 			testClusterInterfaceGKE,
 			testClusterConfGKE,
 		},
 		{
+			&Config{},
 			testClusterInterfaceRKE,
 			testClusterConfRKE,
+		},
+		{
+			&Config{},
+			testClusterInterfaceAKS,
+			testClusterConfAKS,
+		},
+		{
+			testAwsCredsConfig,
+			testClusterInterfaceEKS,
+			testClusterConfEKS,
+		},
+		{
+			testAwsCredsConfig,
+			testNoAwsCredsClusterInterfaceEKS,
+			testProviderAwsCredsClusterConfEKS,
 		},
 	}
 
 	for _, tc := range cases {
 		inputResourceData := schema.TestResourceDataRaw(t, clusterFields(), tc.Input)
-		output, err := expandCluster(inputResourceData)
+		output, err := expandCluster(inputResourceData, tc.Config)
 		if err != nil {
 			t.Fatalf("[ERROR] on expander: %#v", err)
 		}

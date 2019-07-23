@@ -269,3 +269,11 @@ func newFalse() *bool {
 	b := false
 	return &b
 }
+
+func copyMap(originalMap map[string]interface{}) map[string]interface{} {
+	newMap := make(map[string]interface{})
+	for key, value := range originalMap {
+		newMap[key] = value
+	}
+	return newMap
+}

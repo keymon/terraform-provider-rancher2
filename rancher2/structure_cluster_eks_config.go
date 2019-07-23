@@ -75,7 +75,7 @@ func flattenClusterEKSConfig(in *AmazonElasticContainerServiceConfig) ([]interfa
 
 // Expanders
 
-func expandClusterEKSConfig(p []interface{}, name string) (*AmazonElasticContainerServiceConfig, error) {
+func expandClusterEKSConfig(p []interface{}, name string, config *Config) (*AmazonElasticContainerServiceConfig, error) {
 	obj := &AmazonElasticContainerServiceConfig{}
 	if len(p) == 0 || p[0] == nil {
 		return obj, nil
@@ -86,10 +86,14 @@ func expandClusterEKSConfig(p []interface{}, name string) (*AmazonElasticContain
 
 	if v, ok := in["access_key"].(string); ok && len(v) > 0 {
 		obj.AccessKey = v
-	}
-
-	if v, ok := in["secret_key"].(string); ok && len(v) > 0 {
-		obj.SecretKey = v
+		if v, ok := in["secret_key"].(string); ok && len(v) > 0 {
+			obj.SecretKey = v
+		}
+		if v, ok := in["session_token"].(string); ok && len(v) > 0 {
+			obj.SessionToken = v
+		}
+	} else {
+		obj.AccessKey, obj.SecretKey, obj.SessionToken = config.AwsCredentials.GetCredentials()
 	}
 
 	if v, ok := in["ami"].(string); ok && len(v) > 0 {
@@ -130,10 +134,6 @@ func expandClusterEKSConfig(p []interface{}, name string) (*AmazonElasticContain
 
 	if v, ok := in["service_role"].(string); ok && len(v) > 0 {
 		obj.ServiceRole = v
-	}
-
-	if v, ok := in["session_token"].(string); ok && len(v) > 0 {
-		obj.SessionToken = v
 	}
 
 	if v, ok := in["subnets"].([]interface{}); ok && len(v) > 0 {

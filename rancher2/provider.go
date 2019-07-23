@@ -2,6 +2,7 @@ package rancher2
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -69,6 +70,7 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("RANCHER_INSECURE", false),
 				Description: descriptions["insecure"],
 			},
+			"aws_credentials": awsCredentialsSchema(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -180,5 +182,49 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		}
 	}
 
+	awsCredentialsList := d.Get("aws_credentials").(*schema.Set).List()
+	if len(awsCredentialsList) == 1 {
+		awsCredentials := awsCredentialsList[0].(map[string]interface{})
+		config.AwsCredentials.AccessKey = awsCredentials["access_key"].(string)
+		config.AwsCredentials.SecretKey = awsCredentials["secret_key"].(string)
+		config.AwsCredentials.SessionToken = awsCredentials["session_token"].(string)
+		log.Printf("[INFO] global aws_credentials configuration set.")
+	} else {
+		log.Printf("[INFO] no global aws_credentials configuration set.")
+	}
+
 	return config, nil
+}
+
+func awsCredentialsSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"access_key": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("RANCHER_AWS_ACCESS_KEY", ""),
+					Description: "The AWS Client ID to use",
+				},
+				"secret_key": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("RANCHER_AWS_SECRET_KEY", ""),
+					Description: "The AWS Client Secret associated with the Client ID",
+				},
+				"session_token": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Sensitive:   true,
+					DefaultFunc: schema.EnvDefaultFunc("RANCHER_AWS_SESSION_TOKEN", ""),
+					Description: "A session token to use with the client key and secret if applicable",
+				},
+			},
+		},
+	}
 }

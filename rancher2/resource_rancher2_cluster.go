@@ -31,7 +31,7 @@ func resourceRancher2Cluster() *schema.Resource {
 }
 
 func resourceRancher2ClusterCreate(d *schema.ResourceData, meta interface{}) error {
-	cluster, err := expandCluster(d)
+	cluster, err := expandCluster(d, meta.(*Config))
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func resourceRancher2ClusterUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 		update["azureKubernetesServiceConfig"] = aksConfig
 	case clusterDriverEKS:
-		eksConfig, err := expandClusterEKSConfig(d.Get("eks_config").([]interface{}), d.Get("name").(string))
+		eksConfig, err := expandClusterEKSConfig(d.Get("eks_config").([]interface{}), d.Get("name").(string), meta.(*Config))
 		if err != nil {
 			return err
 		}

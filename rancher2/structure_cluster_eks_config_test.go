@@ -6,32 +6,48 @@ import (
 )
 
 var (
-	testClusterEKSConfigConf      *AmazonElasticContainerServiceConfig
-	testClusterEKSConfigInterface []interface{}
+	testAwsCredsConfig                       *Config
+	testClusterEKSConfigConf                 *AmazonElasticContainerServiceConfig
+	testClusterEKSConfigInterface            []interface{}
+	testProviderAwsCredsClusterEKSConfigConf *AmazonElasticContainerServiceConfig
+	testNoAwsCredsClusterEKSConfigInterface  []interface{}
+	testNoAwsTokenClusterEKSConfigConf       *AmazonElasticContainerServiceConfig
+	testNoAwsTokenClusterEKSConfigInterface  []interface{}
 )
 
 func init() {
-	testClusterEKSConfigConf = &AmazonElasticContainerServiceConfig{
-		AccessKey:                   "XXXXXXXX",
-		SecretKey:                   "YYYYYYYY",
-		AMI:                         "ami",
-		AssociateWorkerNodePublicIP: newTrue(),
-		DisplayName:                 "test",
-		InstanceType:                "instance",
-		KubernetesVersion:           "1.11",
-		MaximumNodes:                5,
-		MinimumNodes:                3,
-		NodeVolumeSize:              40,
-		Region:                      "region",
-		SecurityGroups:              []string{"sg1", "sg2"},
-		ServiceRole:                 "role",
-		SessionToken:                "session_token",
-		Subnets:                     []string{"subnet1", "subnet2"},
-		UserData:                    "user_data",
-		VirtualNetwork:              "network",
+	testAwsCredsConfig = &Config{
+		AwsCredentials: AwsCredentials{
+			AccessKey:    "provider_XXXXXXXX",
+			SecretKey:    "provider_YYYYYYYY",
+			SessionToken: "provider_session_token",
+		},
 	}
-	testClusterEKSConfigInterface = []interface{}{
-		map[string]interface{}{
+
+	getBaseConfig := func() *AmazonElasticContainerServiceConfig {
+		return &AmazonElasticContainerServiceConfig{
+			AccessKey:                   "XXXXXXXX",
+			SecretKey:                   "YYYYYYYY",
+			AMI:                         "ami",
+			AssociateWorkerNodePublicIP: newTrue(),
+			DisplayName:                 "test",
+			InstanceType:                "instance",
+			KubernetesVersion:           "1.11",
+			MaximumNodes:                5,
+			MinimumNodes:                3,
+			NodeVolumeSize:              40,
+			Region:                      "region",
+			SecurityGroups:              []string{"sg1", "sg2"},
+			ServiceRole:                 "role",
+			SessionToken:                "session_token",
+			Subnets:                     []string{"subnet1", "subnet2"},
+			UserData:                    "user_data",
+			VirtualNetwork:              "network",
+		}
+	}
+
+	getBaseEKSConfigInterface := func() map[string]interface{} {
+		return map[string]interface{}{
 			"access_key":                      "XXXXXXXX",
 			"secret_key":                      "YYYYYYYY",
 			"ami":                             "ami",
@@ -48,7 +64,38 @@ func init() {
 			"subnets":                         []interface{}{"subnet1", "subnet2"},
 			"user_data":                       "user_data",
 			"virtual_network":                 "network",
-		},
+		}
+	}
+
+	testClusterEKSConfigConf = getBaseConfig()
+
+	testClusterEKSConfigInterface = []interface{}{
+		getBaseEKSConfigInterface(),
+	}
+
+	// Cases for AWS creds in provider, not in eks_config
+	testProviderAwsCredsClusterEKSConfigConf = getBaseConfig()
+	testProviderAwsCredsClusterEKSConfigConf.AccessKey = "provider_XXXXXXXX"
+	testProviderAwsCredsClusterEKSConfigConf.SecretKey = "provider_YYYYYYYY"
+	testProviderAwsCredsClusterEKSConfigConf.SessionToken = "provider_session_token"
+
+	copyBaseEKSInterface := getBaseEKSConfigInterface()
+	delete(copyBaseEKSInterface, "access_key")
+	delete(copyBaseEKSInterface, "secret_key")
+	delete(copyBaseEKSInterface, "session_token")
+
+	testNoAwsCredsClusterEKSConfigInterface = []interface{}{
+		copyBaseEKSInterface,
+	}
+
+	// Test for AWS creds in provider, base in eks_config
+	testNoAwsTokenClusterEKSConfigConf = getBaseConfig()
+	testNoAwsTokenClusterEKSConfigConf.SessionToken = ""
+
+	copyBaseEKSInterface = getBaseEKSConfigInterface()
+	delete(copyBaseEKSInterface, "session_token")
+	testNoAwsTokenClusterEKSConfigInterface = []interface{}{
+		copyBaseEKSInterface,
 	}
 }
 
@@ -79,17 +126,34 @@ func TestFlattenClusterEKSConfig(t *testing.T) {
 func TestExpandClusterEKSConfig(t *testing.T) {
 
 	cases := []struct {
+		Config         *Config
 		Input          []interface{}
 		ExpectedOutput *AmazonElasticContainerServiceConfig
 	}{
 		{
+			&Config{},
 			testClusterEKSConfigInterface,
 			testClusterEKSConfigConf,
+		},
+		{
+			testAwsCredsConfig,
+			testClusterEKSConfigInterface,
+			testClusterEKSConfigConf,
+		},
+		{
+			testAwsCredsConfig,
+			testNoAwsCredsClusterEKSConfigInterface,
+			testProviderAwsCredsClusterEKSConfigConf,
+		},
+		{
+			testAwsCredsConfig,
+			testNoAwsTokenClusterEKSConfigInterface,
+			testNoAwsTokenClusterEKSConfigConf,
 		},
 	}
 
 	for _, tc := range cases {
-		output, err := expandClusterEKSConfig(tc.Input, "test")
+		output, err := expandClusterEKSConfig(tc.Input, "test", tc.Config)
 		if err != nil {
 			t.Fatalf("[ERROR] on expander: %#v", err)
 		}
